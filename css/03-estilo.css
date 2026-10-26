@@ -1,0 +1,1 @@
+/* ' + f + ' */\n' + (fs().read(f) || '').replace(/^@tailwind[^;]*;|^@import[^;]*;|^@apply[^;]*;/gm, '') + '

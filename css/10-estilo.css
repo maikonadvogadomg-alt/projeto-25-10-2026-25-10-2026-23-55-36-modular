@@ -1,0 +1,86 @@
+/i.test(t)) {
+        push(i, 'html'); stc++;
+        let j = i + 1; while (j < lines.length && !/<\/style>/i.test(lines[j])) j++;
+        out.push({ a: i, b: i + 1, kind: 'tag', name: '<style> ' + stc });
+        const inner = lines.slice(i + 1, j).join('\n');
+        if (j > i + 1) splitCss(inner).forEach((bl) => out.push({ a: i + 1 + bl.a, b: i + 1 + bl.b, kind: bl.kind, name: 'CSS › ' + bl.name, lang: 'css' }));
+        seg = { a: j, kind: 'html' }; i = j; continue;
+      }
+      if (/^<script\b/i.test(t) && !/<\/script>/i.test(t)) {
+        push(i, 'html'); sc++;
+        let j = i + 1; while (j < lines.length && !/<\/script>/i.test(lines[j])) j++;
+        const isMod = /type=["']?module/i.test(t);
+        out.push({ a: i, b: i + 1, kind: 'tag', name: '<script> ' + sc + (isMod ? ' (módulo)' : '') });
+        const inner = lines.slice(i + 1, j).join('\n');
+        if (j > i + 1) splitJs(inner, 'js').forEach((bl) => out.push({ a: i + 1 + bl.a, b: i + 1 + bl.b, kind: bl.kind, name: 'JS › ' + bl.name, lang: 'js' }));
+        seg = { a: j, kind: 'html' }; i = j; continue;
+      }
+      if (/^<head\b/i.test(t)) push(i, 'html', 'cabeçalho (head)');
+      else if (/^<body\b/i.test(t)) push(i, 'html', 'corpo (body)');
+      else if (/^<\x21--/.test(t) && i > seg.a) push(i, 'html', t.replace(/^<\x21--\s*|\s*-->.*$/g, '').slice(0, 50));
+      i++;
+    }
+    push(lines.length, 'html');
+    return out.filter((b) => b.b > b.a).map((b) => Object.assign(b, { name: b.name || (lines[b.a] || '').trim().slice(0, 40) || 'html', lang: b.lang || 'html' }));
+  }
+  function langOf(name, text) {
+    const e = (name.split('.').pop() || '').toLowerCase();
+    if (/^(tsx|jsx)$/.test(e)) return e; if (/^(ts|mts|cts)$/.test(e)) return 'ts'; if (/^(js|mjs|cjs)$/.test(e)) return 'js';
+    if (/^(html?|vue|svelte)$/.test(e)) return 'html'; if (/^(css|scss|less)$/.test(e)) return 'css'; if (e === 'py') return 'py'; if (/^(md|markdown)$/.test(e)) return 'md';
+    if (/^\s*<(!doctype|html|head|body|div)/i.test(text)) return 'html';
+    if (/^\s*(import|export|const|function|let|var)\b/m.test(text)) return 'js';
+    return 'txt';
+  }
+  function slice(name, text) {
+    text = text.replace(/\r\n/g, '\n');
+    const lang = langOf(name, text);
+    let blocks;
+    if (lang === 'html') blocks = splitHtml(text);
+    else if (/^(js|ts|tsx|jsx)$/.test(lang)) blocks = splitJs(text, lang);
+    else if (lang === 'css') blocks = splitCss(text);
+    else if (lang === 'py') blocks = splitPy(text);
+    else if (lang === 'md') blocks = splitMd(text);
+    else blocks = splitPlain(text);
+    const lines = text.split('\n');
+    // dependências entre blocos (JS/TS)
+    const named = blocks.filter((b) => /função|componente|classe|constante|tipo/.test(b.kind));
+    blocks.forEach((b, k) => {
+      b.n = k + 1; b.text = lines.slice(b.a, b.b).join('\n'); b.lang = b.lang || lang;
+      b.uses = [];
+    });
+    named.forEach((dep) => {
+      const ids = dep.name.split(/,\s*/).filter((x) => /^[A-Za-z_$][\w$]*$/.test(x));
+      if (!ids.length) return;
+      const re = new RegExp('(^|[^\\w$.])(' + ids.map((x) => x.replace(/\$/g, '\\$')).join('|') + ')(?![\\w$])');
+      blocks.forEach((b) => { if (b !== dep && b.kind !== 'tag' && re.test(b.text.replace(/\/\/.*$/gm, ''))) b.uses.push(dep.n); });
+    });
+    blocks.forEach((b) => { b.usedBy = blocks.filter((o) => o.uses.includes(b.n)).map((o) => o.n); });
+    return { name, text, lang, lines: lines.length, blocks };
+  }
+  const rejoin = (blocks) => blocks.map((b) => b.text).join('\n');
+
+  // ── Exportações ─────────────────────────────────────────────────────────────
+  const fence = (l) => ({ js: 'js', ts: 'ts', tsx: 'tsx', jsx: 'jsx', html: 'html', css: 'css', py: 'python', md: 'md' }[l] || '');
+  const slug = (s) => String(s || 'bloco').normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '').slice(0, 40) || 'bloco';
+  const extFor = (b, fileLang) => ({ js: 'js', ts: 'ts', tsx: 'tsx', jsx: 'jsx', html: 'html', css: 'css', py: 'py', md: 'md' }[b.lang || fileLang] || 'txt');
+  const pad = (n, w) => String(n).padStart(w, '0');
+  function modPath(r, b) { const w = String(r.blocks.length).length; return baseName(r.name) + '-modulos/' + pad(b.n, Math.max(2, w)) + '-' + slug(b.name) + '.' + extFor(b, r.lang); }
+  const baseName = (p) => p.split('/').pop().replace(/\.[^.]+$/, '') || 'arquivo';
+  function indexMD(r) {
+    const L = ['# Índice de `' + r.name + '`', '', r.lines + ' linhas · ' + r.blocks.length + ' blocos · gerado pelo Mini SK', '', '| Nº | Nome | Tipo | Linhas | Usa | Usado por |', '|---|---|---|---|---|---|'];
+    r.blocks.forEach((b) => L.push('| ' + b.n + ' | ' + b.name.replace(/\|/g, '\\|') + ' | ' + b.kind + ' | ' + (b.a + 1) + '–' + b.b + ' | ' + (b.uses.join(', ') || '—') + ' | ' + (b.usedBy.join(', ') || '—') + ' |'));
+    return L.join('\n') + '\n';
+  }
+  function toMD(r) {
+    return indexMD(r) + '\n' + r.blocks.map((b) => '## ' + b.n + '. ' + b.name + '  \n_' + b.kind + ' · linhas ' + (b.a + 1) + '–' + b.b + (b.uses.length ? ' · usa ' + b.uses.join(', ') : '') + '_\n\n```' + fence(b.lang) + '\n' + b.text + '\n```\n').join('\n');
+  }
+  function toTXT(r) {
+    return '# Módulos de "' + r.name + '" — use o ⤵ Montar do Raio-X para recriar os arquivos.\n# Juntando os arquivos na ordem (01, 02, 03…) volta o original.\n\n' +
+      r.blocks.map((b) => '===== ARQUIVO: ' + modPath(r, b) + ' =====\n' + b.text + '\n===== FIM: ' + modPath(r, b) + ' =====\n').join('\n');
+  }
+  function toHTML(r) {
+    const esc = SK.esc;
+    return '<!doctype html><html lang="pt-BR"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Blocos de ' + esc(r.name) + '</title><style>' +
+      ':root{color-scheme:dark}body{margin:0;background:#0f1420;color:#d8deea;font:14px/1.5 system-ui,sans-serif}header{position:sticky;top:0;background:#151b2b;padding:10px 14px;border-bottom:1px solid #263048;z-index:2}h1{font-size:16px;margin:0 0 6px}input{width:100%;box-sizing:border-box;padding:8px 10px;border-radius:8px;border:1px solid #34405e;background:#0b0f18;color:inherit}' +
+      'nav{padding:8px 14px;columns:2 260px;font-size:13px}nav a{color:#8fb8ff;text-decoration:none;display:block;break-inside:avoid}section{margin:12px 14px;border:1px solid #263048;border-radius:10px;overflow:hidden}.h{display:flex;gap:8px;align-items:center;background:#1b2337;padding:6px 10px;flex-wrap:wrap}.h b{flex:1}.k{font-size:11px;color:#8592ab}' +
+      'button{background:#2f6be0;color:#fff;border:0;border-radius:7px;padding:6px 12px;font:inherit;cursor:pointer}pre{margin:0;padding:10px;overflow:auto;max-height:60vh;font:12px/1.45 ui-monospace,Consolas,monospace;background:#0b0f18;white-space:pre}

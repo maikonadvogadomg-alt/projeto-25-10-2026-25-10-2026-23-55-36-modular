@@ -1,0 +1,67 @@
+# Pacote do projeto "Projeto 25-10-2026 25-10-2026, 23-55-36 (modular)" para a IA
+# 0 arquivos. Cada um começa com ===== ARQUIVO: caminho =====
+
+## Estrutura
+├── css/
+│   ├── 01-estilo.css
+│   ├── 02-estilo.css
+│   ├── 03-estilo.css
+│   ├── 04-estilo.css
+│   ├── 05-estilo.css
+│   ├── 06-estilo.css
+│   ├── 07-estilo.css
+│   ├── 08-estilo.css
+│   ├── 09-estilo.css
+│   ├── 10-estilo.css
+│   └── 11-estilo.css
+├── js/
+│   ├── 01-codigo.js
+│   ├── 02-codigo.js
+│   ├── 03-codigo.js
+│   ├── 04-codigo.js
+│   ├── 05-codigo.js
+│   ├── 06-codigo.js
+│   ├── 07-codigo.js
+│   ├── 08-codigo.js
+│   ├── 09-codigo.js
+│   ├── 10-codigo.js
+│   ├── 11-codigo.js
+│   ├── 12-codigo.js
+│   ├── 13-codigo.js
+│   ├── 14-codigo.js
+│   ├── 15-codigo.js
+│   ├── 16-codigo.js
+│   ├── 17-codigo.js
+│   ├── 18-codigo.js
+│   ├── 19-codigo.js
+│   ├── 20-codigo.js
+│   ├── 21-codigo.js
+│   ├── 22-codigo.js
+│   ├── 23-codigo.js
+│   ├── 24-codigo.js
+│   ├── 25-codigo.js
+│   ├── 26-codigo.js
+│   ├── 27-codigo.js
+│   ├── 28-codigo.js
+│   ├── 29-codigo.js
+│   ├── 30-codigo.js
+│   ├── 31-codigo.js
+│   ├── 32-codigo.js
+│   ├── 33-codigo.js
+│   ├── 34-codigo.js
+│   ├── 35-codigo.js
+│   ├── 36-codigo.js
+│   ├── 37-codigo.js
+│   ├── 38-codigo.js
+│   ├── 39-codigo.js
+│   ├── 40-codigo.js
+│   ├── 41-codigo.js
+│   ├── 42-codigo.js
+│   ├── 43-codigo.js
+│   ├── 44-codigo.js
+│   ├── 45-codigo.js
+│   ├── 46-codigo.js
+│   └── 47-codigo.js
+├── 1.html
+└── LEIA-MODULAR.md
+
